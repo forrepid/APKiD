@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021  RedNaga. https://rednaga.io
+ * Copyright (C) 2022  RedNaga. https://rednaga.io
  * All rights reserved. Contact: rednaga@protonmail.com
  *
  *
@@ -318,16 +318,23 @@ rule arxan_arm64 : obfuscator
      * This is a updated version of the previous Arxan 32bits rule.
      */
     $a = {
-      09 01 0B 8A   // AND  X9, X8, X11
+      09 01 0? 8A   // AND  X9, X8, X11/X12
       4A 00 80 D2   // MOV  X10, #2
       29 7D 0A 9B   // MUL  X9, X9, X10
-      08 01 0B CA   // EOR  X8, X8, X11
+      08 01 0? CA   // EOR  X8, X8, X11/X12
       08 01 09 8B   // ADD  X8, X8, X9
       00 01 1F D6   // BR   X8
     }
 
+    $b = {
+      28 00 80 D2   // MOV  X8, #1
+      69 00 00 10   // ADR  X9, loc_XXX
+      28 7D 08 9B   // MUL  X8, X9, X8
+      00 01 1F D6   // BR   X8
+    }
+
   condition:
-    (#a > 5) and elf.machine == elf.EM_AARCH64
+    (#a > 3 or #b > 3) and elf.machine == elf.EM_AARCH64
 }
 
 rule alipay : obfuscator
@@ -370,6 +377,78 @@ rule dexguard_native : obfuscator
     condition:
       is_elf
       and any of them
+}
+
+rule dexguard_native_a : obfuscator
+{
+  meta:
+    description = "DexGuard 9.x"
+    url         = "https://www.guardsquare.com/en/products/dexguard"
+    sample      = "71b11059820c358fb14a0917430e07cf254e15d5b3337471ad172ad5ceccfa2a"
+    author      = "Eduardo Novella"
+
+    strings:
+      // Library name is libdgrt (probably DexGuard RunTime)
+      $libdgrt     = { 006c 6962 6467 7274 2e73 6f00 } // libdgrt.so
+      $s_java_o_   = { 00 4a61 7661 5f6f 5f } // Java_o_
+      $s_jnionload = { 004a 4e49 5f4f 6e4c 6f61 6400 } // JNI_OnLoad
+      $s_basename  = { 00 6261 7365 6e61 6d65 00 }
+      $s_mprotect  = { 006d 7072 6f74 6563 7400 }
+      $s_dirname   = { 00 6469 726e 616d 6500 }
+
+    condition:
+      is_elf
+      and $libdgrt
+      and 4 of ($s_*)
+      and not dexguard_native
+}
+
+rule dexguard_native_arm64 : obfuscator
+{
+  meta:
+    description = "DexGuard 9.x"
+    url         = "https://www.guardsquare.com/en/products/dexguard"
+    sample      = "fc3fae3de64eceab969b7d91e3a5fbc45c7407bb8d1a5d5018caa86947604713"
+    author      = "FrenchYeti"
+
+  strings:
+    // that is how dexguard detects frida into /proc/%d/maps
+    $hook = {
+      0b 1d 00 12  //  and        w11,bf,#0xff
+      48 15 40 38  //  ldrb       bf,[x10], #0x1
+      29 25 1b 53  //  ubfiz      w9,w9,#0x5,#0xa
+      29 01 0b 4a  //  eor        w9,w9,w11
+      88 ff ff 35  //  cbnz       bf,LAB_00106e44
+      e8 c1 86 52  //  mov        bf,#0x360f
+      3f 01 08 6b  //  cmp        w9,bf
+    }
+    // recurring patterns used into several string decryption
+    $str = {
+      6c 69 69 38  //  ldrb       w12,[x11, x9, LSL ]
+      8c ?? ?? 11  //  add        w12,w12,??
+      6c 69 29 38  //  strb       w12,[x11, x9, LSL ]
+      29 05 00 91  //  add        x9,x9,#0x1
+      3f ?? ?? f1  //  cmp        x9,??
+      ec 17 9f 1a  //  cset       w12,??
+    }
+    $str2 = {
+      30 ?? cc 9b 10 fe ?? d3 10 a6 0d 9b 6f 69 69 38 d0 69 70 38
+      0f 02 0f 4a 6f 69 29 38 29 05 00 91 3f ?? ?? f1 ef 17 9f 1a
+    }
+    // binaries have always 8 svc instructions
+    $svc = {
+      ?8 ?? ?? d2  //  mov        x8,??
+      01 00 00 d4  //  svc        0x0
+      1f 04 40 b1  //  cmn        x0, #0x1, LSL#12
+      00 94 80 da  //  cneg       x0, x0, hi
+      ?8 ?? ?? 54  //  b.hi       ??
+      c0 03 5f d6  //  ret
+    }
+
+  condition:
+    elf.machine == elf.EM_AARCH64
+    and $hook and ($str or $str2) and #svc >= 6
+    and not dexguard_native and not dexguard_native_a
 }
 
 rule snapprotect : obfuscator

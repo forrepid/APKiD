@@ -15,6 +15,7 @@ For more information on what this tool can be used for, check out:
 * [Android Compiler Fingerprinting](http://hitcon.org/2016/CMT/slide/day1-r0-e-1.pdf)
 * [Detecting Pirated and Malicious Android Apps with APKiD](http://rednaga.io/2016/07/31/detecting_pirated_and_malicious_android_apps_with_apkid/)
 * [APKiD: PEiD for Android Apps](https://github.com/enovella/cve-bio-enovella/blob/master/slides/bheu18-enovella-APKID.pdf)
+* [APKiD: Fast Identification of AppShielding Products](https://github.com/enovella/cve-bio-enovella/blob/master/slides/APKiD-NowSecure-Connect19-enovella.pdf)
 
 ## Installing
 
@@ -103,11 +104,11 @@ pip install -e .[dev,test] --user
 
 If you update any of the rules, be sure to run `prep-release.py` to recompile them.
 
-## For Maintainers
+## For Package Maintainers
 
-This section is for package maintainers.
+When releasing a new version, make sure the version has been updated in [apkid/__init__.py](apkid/__init__.py).
 
-Make sure the version has been updated in [apkid/__init__.py](apkid/__init__.py)
+As for running tests, check out [.travis.yml](.travis.yml) to see how the dev and test environments are setup and tests are run.
 
 Update the compiled rules, the readme, build the package and upload to PyPI:
 

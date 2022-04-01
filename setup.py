@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
- Copyright (C) 2021  RedNaga. https://rednaga.io
+ Copyright (C) 2022  RedNaga. https://rednaga.io
  All rights reserved. Contact: rednaga@protonmail.com
 
 
@@ -47,7 +47,7 @@ def package_files(directory):
 
 
 install_requires = [
-    'yara-python-dex>=1.0.0',
+    'yara-python-dex>=1.0.1',
 ]
 
 dev_requires = [
