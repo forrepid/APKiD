@@ -226,6 +226,48 @@ rule dexprotector_b : packer
     not dexprotector
 }
 
+rule dexprotector_c : packer
+{
+  meta:
+    author      = "Eduardo Novella"
+    description = "DexProtector"
+    url         = "https://dexprotector.com/"
+    sample      = "2a0d410d540d75f0f1d9a217087e5df6e7032399d3c116a324541488a03f12d3"
+
+  strings:
+    //               assets/dp.arch.so.random.mp3
+    $encrptlib    = /assets\/dp\.(arm-v7|arm-v8|x86|x86_64)\.so\.[A-Za-z0-9]{2,8}\.mp3/
+    $encrptcustom = /assets\/[A-Za-z0-9]{2,8}\.mp3/
+
+  condition:
+    is_apk and all of them and
+    not dexprotector_a and
+    not dexprotector_b and
+    not dexprotector
+}
+
+rule dexprotector_d : packer
+{
+  meta:
+    author      = "Eduardo Novella"
+    description = "DexProtector"
+    url         = "https://dexprotector.com/"
+    sample      = "18e638efebb43bcd57e96214fab6f94ff609fc51babf1599f8ef0efd846fbf74"
+
+  strings:
+    //            assets/random.(mp3|dat)
+    $encrptlib = /assets\/[A-Za-z0-9]{3,10}\.mp3/
+    $encrptdat = /assets\/[A-Za-z0-9]{3,10}\.dat/
+    $libdexpro = /lib\/(arm.*|x86.*)\/libdexprotector\.[A-Za-z0-9.]{2,8}\.so/
+
+  condition:
+    is_apk and all of them and
+    not dexprotector_a and
+    not dexprotector_b and
+    not dexprotector_c and
+    not dexprotector
+}
+
 rule dexpro_aide_a : packer
 {
   meta:
@@ -809,4 +851,20 @@ rule apkencryptor : packer
 
   condition:
     is_apk and ($src1 or $src2 or $src3)
+}
+
+rule epicvm : packer
+{
+    meta:
+        description = "Epic VM"
+        url         = "https://t.me/epic_pro"
+        url2        = "https://t.me/epic_pro/12"
+        sample      = "da62478ddde547878294508d428580013e7ffce274ae3756ac260ae7d50640b8"
+        author      = "Eduardo Novella"
+
+    strings:
+        $lib =  /lib\/(x86\_64|armeabi\-v7a|arm64\-v8a|x86)\/libEpic\_Vm\.so/
+
+    condition:
+        is_apk and all of them
 }
