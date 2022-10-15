@@ -155,6 +155,51 @@ rule ollvm_v6_0 : obfuscator
     not ollvm_v6_0_strenc
 }
 
+rule ollvm_v8_strenc : obfuscator
+{
+  meta:
+    description = "Obfuscator-LLVM version 8.x (string encryption)"
+    url         = "https://github.com/obfuscator-llvm/obfuscator/wiki"
+    url2        = "https://github.com/heroims/obfuscator"
+    sample      = "2c720f5ec740f4c8571dbba205eadba483556c5c387fe88ff25192b25552da0f"
+    author      = "Eduardo Novella"
+
+  strings:
+    /*
+      [0x0000a5bc]> izzq~+obfuscator,ollvm,clang
+      0x1 263 262 Android (4751641 based on r328903) clang version 7.0.2 (https://android.googlesource.com/toolchain/clang 003100370607242ddd5815e4a043907ea9004281) (https://android.googlesource.com/toolchain/llvm 1d739ffb0366421d383e04ff80ec2ee591315116) (based on LLVM 7.0.2svn)
+      0x108 155 154 Obfuscator-LLVM clang version 8.0.0  (https://github.com/heroims/obfuscator.git 29d9dc8c1bd662f3a73d1b1b009266af1786b7b8) (based on Obfuscator-LLVM 8.0.0)
+    */
+    $ollvm  = "Obfuscator-LLVM clang version 8."
+    $strenc = /\.datadiv_decode[\d]{18,20}/
+
+  condition:
+    is_elf and all of them
+}
+
+rule ollvm_v8 : obfuscator
+{
+  meta:
+    description = "Obfuscator-LLVM version 8.x"
+    url         = "https://github.com/obfuscator-llvm/obfuscator/wiki"
+    url2        = "https://github.com/heroims/obfuscator"
+    sample      = "2c720f5ec740f4c8571dbba205eadba483556c5c387fe88ff25192b25552da0f"
+    author      = "Eduardo Novella"
+
+  strings:
+    /*
+      [0x0000a5bc]> izzq~+obfuscator,ollvm,clang
+      0x1 263 262 Android (4751641 based on r328903) clang version 7.0.2 (https://android.googlesource.com/toolchain/clang 003100370607242ddd5815e4a043907ea9004281) (https://android.googlesource.com/toolchain/llvm 1d739ffb0366421d383e04ff80ec2ee591315116) (based on LLVM 7.0.2svn)
+      0x108 155 154 Obfuscator-LLVM clang version 8.0.0  (https://github.com/heroims/obfuscator.git 29d9dc8c1bd662f3a73d1b1b009266af1786b7b8) (based on Obfuscator-LLVM 8.0.0)
+    */
+    $ollvm = "Obfuscator-LLVM clang version 8."
+
+  condition:
+    is_elf and
+    all of them and
+    not ollvm_v8_strenc
+}
+
 rule ollvm_v9 : obfuscator
 {
   meta:
@@ -266,6 +311,7 @@ rule ollvm_strenc : obfuscator
     not ollvm_armariris and
     not ollvm_v5_0_strenc and
     not ollvm_v6_0_strenc and
+    not ollvm_v8_strenc and
     not ollvm_v9_strenc
 }
 
@@ -292,6 +338,8 @@ rule ollvm : obfuscator
     not ollvm_v6_0 and
     not ollvm_v6_0_strenc and
     not ollvm_strenc and
+    not ollvm_v8 and
+    not ollvm_v8_strenc and
     not ollvm_v9 and
     not ollvm_v9_strenc
 }
@@ -421,6 +469,7 @@ rule advobfuscator : obfuscator
     $s_10 = "_ZNK17ObfuscatedAddressIPFvPcS0_iiEE8originalEv"
     $s_11 = "_ZNK17ObfuscatedAddressIPFvcEE8originalEv"
     $s_12 = "_ZNK17ObfuscatedAddressIPFvPviiEE8originalEv"
+    $s_13 = /\_ZN\dandrivet\d\dADVobfuscator\d\dMetaString.*decryptEv/
 
   condition:
     any of them and is_elf
@@ -550,10 +599,10 @@ rule dexguard_native_arm64 : obfuscator
     description = "DexGuard 9.x"
     url         = "https://www.guardsquare.com/en/products/dexguard"
     sample      = "fc3fae3de64eceab969b7d91e3a5fbc45c7407bb8d1a5d5018caa86947604713"
-    author      = "FrenchYeti"
+    author      = "FrenchYeti & Eduardo Novella"
 
   strings:
-    // that is how dexguard detects frida into /proc/%d/maps
+    // Frida detection into /proc/%d/maps
     $hook = {
       0b 1d 00 12  //  and        w11,bf,#0xff
       48 15 40 38  //  ldrb       bf,[x10], #0x1
@@ -563,7 +612,22 @@ rule dexguard_native_arm64 : obfuscator
       e8 c1 86 52  //  mov        bf,#0x360f
       3f 01 08 6b  //  cmp        w9,bf
     }
-    // recurring patterns used into several string decryption
+    $hook2 = {
+      6c 1d 00 12  //  and        w12, w11, #0xff
+      4b 15 40 38  //  ldrb       w11, [x10],#1
+      29 25 1b 53  //  ubfiz      w9, w9, #5, #0xa
+      29 01 0c 4a  //  eor        w9, w9, w12
+      8b ff ff 35  //  cbnz       w11, loc_85f4
+      ea c1 86 52  //  mov        w10, #0x360f
+      3f 01 0a 6b  //  cmp        w9, w10
+    }
+    $hook3 = {
+      /* ?? ?? ??*/ // Prolog breakage
+      e? c1 86 52   // mov  w8, #0x360f
+      1f 00 0? 6b   // cmp  w0, w8
+    }
+
+    // Recurring patterns used into several string decryption
     $str = {
       6c 69 69 38  //  ldrb       w12,[x11, x9, LSL ]
       8c ?? ?? 11  //  add        w12,w12,??
@@ -576,7 +640,38 @@ rule dexguard_native_arm64 : obfuscator
       30 ?? cc 9b 10 fe ?? d3 10 a6 0d 9b 6f 69 69 38 d0 69 70 38
       0f 02 0f 4a 6f 69 29 38 29 05 00 91 3f ?? ?? f1 ef 17 9f 1a
     }
-    // binaries have always 8 svc instructions
+
+    // Prolog breakage
+    /**
+      jint JNI_OnLoad(JavaVM *vm, void *reserved)
+      {
+        jint result;
+        __asm { BR              X8 }
+        return result;
+      }
+    */
+    $prolog_breakage1 = {
+      ea 03 0a 4b  //  neg        w10, w10
+      4b 01 09 4a  //  eor        w11, w10, w9
+      49 01 09 0a  //  and        w9, w10, w9
+      69 05 09 0b  //  add        w9, w11, w9,lsl#1
+      29 7d 40 93  //  sxtw       x9, w9
+      ea 03 7d b2  //  mov        x10, #8
+      28 21 0a 9b  //  madd       x8, x9, x10, x8
+      08 01 40 f9  //  ldr        x8, [x8]
+      00 01 1f d6  //  br         x8
+    }
+
+    // sample 5f0819ab5247ff992bdd3d3878561c4effa32878cf6e69c174b5ed054c52588f
+    $prolog_breakage2 = {
+      (4?|5?) d0 3b d5  //  mrs x9, tpidr_el0
+      29 15 40 f9       //  ldr x9, [x9, 0x28]
+      a9 83 1e f8       //  stur x9, [x29, -0x18]
+      08 ?? 40 f9       //  ldr x8, [x8, 0x70]
+      00 01 1f d6       //  br x8
+    }
+
+    // Binaries have usually >= 6 SVC instructions
     $svc = {
       ?8 ?? ?? d2  //  mov        x8,??
       01 00 00 d4  //  svc        0x0
@@ -588,8 +683,11 @@ rule dexguard_native_arm64 : obfuscator
 
   condition:
     elf.machine == elf.EM_AARCH64
-    and $hook and ($str or $str2) and #svc >= 6
-    and not dexguard_native and not dexguard_native_a
+    and 1 of ($hook*)
+    and any of ($str, $str2, $prolog_breakage*)
+    and #svc >= 6
+    and not dexguard_native
+    and not dexguard_native_a
 }
 
 rule snapprotect : obfuscator
@@ -665,4 +763,25 @@ rule dexprotector : obfuscator
 
   condition:
     $dp_elf_header at 0
+}
+
+rule dexprotector_alice : obfuscator
+{
+  meta:
+    description = "DexProtector (Alice)"
+    url         = "https://licelus.com/products/dexprotector/docs/android/alice"
+    sample      = "4f48625f1d4d0a1118478f61855ba96818f3907e46fbf96c55d5cebb8afe59a9"
+    author      = "Eduardo Novella"
+
+  strings:
+    /**
+      libalice.so: /Users/receiver/git/dexprotector/12.7.11/alice-core/src/main/jni/../cpp/alice.cpp
+      libalice.so: /Users/receiver/git/dexprotector/12.7.11/alice-core/src/main/jni/../cpp/queue.cpp
+      libalice.so: /Users/receiver/git/dexprotector/12.7.11/alice-core/src/main/jni/../cpp/SendScheduler.cpp
+      libalice.so: /Users/receiver/git/dexprotector/12.7.11/alice-core/src/main/jni/../cpp/utils.cpp
+    */
+    $alice_sdk =  /dexprotector\/.*\/alice-core\/.*.cpp/
+
+  condition:
+    is_elf and all of them
 }

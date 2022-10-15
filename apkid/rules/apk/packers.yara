@@ -201,7 +201,6 @@ rule dexprotector_a : packer
 rule dexprotector_b : packer
 {
   // Possible newer version
-
   meta:
     author      = "Eduardo Novella"
     description = "DexProtector"
@@ -218,10 +217,11 @@ rule dexprotector_b : packer
     $encrptlib_5 = /assets\/[A-Za-z0-9.]{2,50}\.x86\.so\.dat/
     $encrptlib_6 = /assets\/[A-Za-z0-9.]{2,50}\.x86\_64\.so\.dat/
 
-    $encrptcustom = /assets\/[A-Za-z0-9.]{2,50}\.mp3/
+    $encrptcustom_mp3 = /assets\/[A-Za-z0-9.]{2,50}\.mp3/
+    $encrptcustom_dat = /assets\/[A-Za-z0-9.]{2,50}\.dat/
 
   condition:
-    is_apk and 1 of ($encrptlib_*) and $encrptcustom and
+    is_apk and 1 of ($encrptlib_*) and 1 of ($encrptcustom_*) and
     not dexprotector_a and
     not dexprotector
 }
@@ -256,12 +256,13 @@ rule dexprotector_d : packer
 
   strings:
     //            assets/random.(mp3|dat)
-    $encrptlib = /assets\/[A-Za-z0-9]{3,10}\.mp3/
-    $encrptdat = /assets\/[A-Za-z0-9]{3,10}\.dat/
-    $libdexpro = /lib\/(arm.*|x86.*)\/libdexprotector\.[A-Za-z0-9.]{2,8}\.so/
+    $encrptlib = /assets\/[A-Za-z0-9]{3,64}\.mp3/
+    $encrptdat = /assets\/[A-Za-z0-9]{3,64}\.dat/
+    $libdexpro = /lib\/(arm.*|x86.*)\/libdexprotector\.[A-Za-z0-9.]{2,16}\.so/
+    $libalice  = /lib\/(arm.*|x86.*)\/libalice.so/
 
   condition:
-    is_apk and all of them and
+    is_apk and 1 of ($encrpt*) and 1 of ($lib*) and
     not dexprotector_a and
     not dexprotector_b and
     not dexprotector_c and
@@ -502,14 +503,17 @@ rule liapp : packer
 {
   meta:
     description = "LIAPP"
-    sample = "b5be20d225edf55634621aa17988a6ed3368d4f7632c8a1eb4d3fc3b6a61c325"
+    sample      = "b5be20d225edf55634621aa17988a6ed3368d4f7632c8a1eb4d3fc3b6a61c325"
+    sample2     = "0697d32c80af84fdde536c5eae2a8bf7ddb0504426a6db7ccde6d8d684a6f588"
+    author      = "Caleb & Diff & Eduardo Novella"
 
   strings:
     $dir = "/LIAPPEgg"
     $lib = "LIAPPClient.sc"
+    $ini = "assets/LIAPP.ini"
 
   condition:
-    is_apk and any of ($dir, $lib)
+    is_apk and any of ($dir, $lib, $ini)
 }
 
 rule app_fortify : packer
